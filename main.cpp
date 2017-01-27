@@ -50,6 +50,8 @@ void Sprite::render ( GLuint shader ) {
 
 void create_packed_glyph_sprite ( GLuint shader, Sprite* sprite, FT_Library ft, unsigned int fontsize, const char* font ) {
 	
+	double start_time = glfwGetTime();
+
 	GLfloat vertices [20] = {
 	
 		0, 0, 0,								0, 0,
@@ -98,7 +100,7 @@ void create_packed_glyph_sprite ( GLuint shader, Sprite* sprite, FT_Library ft, 
 		glDeleteTextures(1, &sprite->tex_id );
 		sprite->tex_id = 0;
 	}
-
+	
 	if( sprite->tex_id == 0 ) {
 
 		if ( fontsize > 200 ) fontsize = 200; // NOTE: The max size will be 200pixels aka 100pt
@@ -139,6 +141,8 @@ void create_packed_glyph_sprite ( GLuint shader, Sprite* sprite, FT_Library ft, 
 			memcpy( characters[c].bitmap, face->glyph->bitmap.buffer, dimensions );
 	    }
 
+	    FT_Done_Face( face );
+
 	    unsigned int combined_character_area = 0;
 
 	    for (GLchar i = startCharacter; i <= endCharacter; i++) {
@@ -149,11 +153,14 @@ void create_packed_glyph_sprite ( GLuint shader, Sprite* sprite, FT_Library ft, 
 	    recm_dim *= 1.5;
 	    
 	    //
-	    // NOTE(Xavier): The dimensions of the texture needs to be 8-byte aligned. This is so that OpenGL will interperate it correctly.
+	    // NOTE(Xavier): The dimensions of the texture needs to be 4-byte aligned. This is so that OpenGL will interperate it correctly.
 	    // 				 This was the cause of the 'offset issue' you were having earlier.
+	    //				 Apparently using glPixelStorei(GL_UNPACK_ALIGNMENT, 1); is the fix for this.
 	    //
 
 	    recm_dim = recm_dim + (8 - (recm_dim%8));
+
+	    printf( "Fontsize:\t%d\tDim:\t%d", fontsize, recm_dim);
 
 	    unsigned char* combinedBitmap = new unsigned char [ recm_dim * recm_dim ]();
 
@@ -187,6 +194,9 @@ void create_packed_glyph_sprite ( GLuint shader, Sprite* sprite, FT_Library ft, 
 	}
 
 	#endif
+
+	double end_time = glfwGetTime();
+	printf( "\tTime:\t%fsec\n", end_time - start_time );
 }
 
 int main ( int argc, char** argv ) {
@@ -198,6 +208,7 @@ int main ( int argc, char** argv ) {
 	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
 	glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE );
 	glfwWindowHint( GLFW_RESIZABLE, GL_TRUE );
+	// glfwWindowHint( GLFW_DECORATED, GL_FALSE );
 
 	GLFWwindow *window = glfwCreateWindow( DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, "GLFW Window", nullptr, nullptr );
 	
@@ -212,10 +223,13 @@ int main ( int argc, char** argv ) {
 	int viewport_width, viewport_height;
 	glfwGetFramebufferSize( window, &viewport_width, &viewport_height );
 	
+	int window_width, window_height;
+	glfwGetWindowSize( window, &window_width, &window_height );
+
 	const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-	unsigned int window_width = mode->width;
-	unsigned int window_height = mode->height;
-	glfwSetWindowPos( window, window_width/2 - DEFAULT_WINDOW_WIDTH/2, window_height/2 - DEFAULT_WINDOW_HEIGHT/2 );
+	unsigned int display_width = mode->width;
+	unsigned int display_height = mode->height;
+	glfwSetWindowPos( window, display_width/2 - DEFAULT_WINDOW_WIDTH/2, display_height/2 - DEFAULT_WINDOW_HEIGHT/2 );
 	
 	glViewport( 0, 0, viewport_width, viewport_height );
 	
@@ -268,9 +282,18 @@ int main ( int argc, char** argv ) {
 
 		if( glfwGetKey( window, GLFW_KEY_SPACE ) ) {
 			fontsize++;
-			printf("Fontsize: %d\n", fontsize);
 			create_packed_glyph_sprite( shader, &sprite, ft, fontsize, "Resources/SFMono-Regular.ttf" );
 		}
+
+		static double old_xpos, old_ypos;
+		if ( glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS ) {
+			double xpos, ypos;
+			glfwGetCursorPos(window, &xpos, &ypos);
+			int win_xpos, win_ypos;
+			glfwGetWindowPos( window, &win_xpos, &win_ypos );
+			glfwSetWindowPos( window, win_xpos+xpos-old_xpos, win_ypos+ypos-old_ypos );			
+		}
+		glfwGetCursorPos(window, &old_xpos, &old_ypos);
 
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
