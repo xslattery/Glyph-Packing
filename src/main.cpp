@@ -12,10 +12,10 @@
 #include <iostream>
 #include <map>
 
-#include "Shader.hpp"
+#include "shader.hpp"
 
-#define DEFAULT_WINDOW_WIDTH 820/2 
-#define DEFAULT_WINDOW_HEIGHT 520/2
+#define DEFAULT_WINDOW_WIDTH 820
+#define DEFAULT_WINDOW_HEIGHT 520
 
 #define GENERATE_FONT_TEXTURE 1
 
@@ -91,7 +91,7 @@ void create_packed_glyph_sprite ( GLuint shader, Sprite* sprite, FT_Library ft, 
 	
 	glBindVertexArray(0);
 
-	#if GENERATE_FONT_TEXTURE
+#if GENERATE_FONT_TEXTURE
 
 	// ----------------------------
 	// Font Texture Generation:
@@ -157,6 +157,9 @@ void create_packed_glyph_sprite ( GLuint shader, Sprite* sprite, FT_Library ft, 
 	    // 				 This was the cause of the 'offset issue' you were having earlier.
 	    //				 Apparently using glPixelStorei(GL_UNPACK_ALIGNMENT, 1); is the fix for this.
 	    //
+	    // NOTE(Xavier): I found the fix to the problem above. It has to do with the alignment of the bytes and how 
+    	//               opengl handles them 'glPixelStorei( GL_UNPACK_ALIGNMENT, 1 )' fixes the issue.
+    	//               Updates to the above code will be required to remove the hacky solution I was previously using.
 
 	    recm_dim = recm_dim + (8 - (recm_dim%8));
 
@@ -183,6 +186,7 @@ void create_packed_glyph_sprite ( GLuint shader, Sprite* sprite, FT_Library ft, 
 		}
 
 		glBindTexture(GL_TEXTURE_2D, sprite->tex_id);
+		glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
 		glTexImage2D( GL_TEXTURE_2D, 0, GL_RED, recm_dim, recm_dim, 0, GL_RED, GL_UNSIGNED_BYTE, combinedBitmap );
 		
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -193,7 +197,7 @@ void create_packed_glyph_sprite ( GLuint shader, Sprite* sprite, FT_Library ft, 
 		delete [] combinedBitmap;
 	}
 
-	#endif
+#endif
 
 	double end_time = glfwGetTime();
 	printf( "\tTime:\t%fsec\n", end_time - start_time );
@@ -251,7 +255,7 @@ int main ( int argc, char** argv ) {
 	// Packed Glyth Texture Sprite: 
 	GLuint shader = LoadShaders("Resources/Vertex.glsl", "Resources/Fragement.glsl");
 	Sprite sprite;
-	sprite.size = glm::vec2( 800, 500 );
+	sprite.size = glm::vec2( viewport_width-20, viewport_height-20 );
 	sprite.position = glm::vec3( 10, 10, 0 );
 	sprite.update_model_matrix();
 	unsigned int fontsize = 0;

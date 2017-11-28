@@ -9,7 +9,7 @@
 #include <GLUT/GLUT.h>
 #include <glm/glm.hpp>
 
-#include "Shader.hpp"
+#include "shader.hpp"
 
 #include <iostream>
 #include <string>
