@@ -1,6 +1,8 @@
-# Glyph-Packing
+# Glyph-Packing-Example
 This project is a testing ground for glyph packing from freetype generated character bitmaps.
 This project is not meant to be anything formal and has only been setup for OSX.
+
+**```Note:```** This project currently does not work because the included freetype library has not been recompiled for newer MacOS versions.
 
 ## Dependencies:
 These are the libraries used by this project:
